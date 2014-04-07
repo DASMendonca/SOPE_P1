@@ -17,6 +17,14 @@
 #include <errno.h>
 #include <string.h>
 #include <signal.h>
+#include <execinfo.h>
+
+#define __USE_GNU
+#include <ucontext.h>
+
+#define DEBUG 1
+#define READ 0
+#define WRITE 1
 
 
 void intHandler(int sign);
