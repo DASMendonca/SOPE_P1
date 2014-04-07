@@ -14,6 +14,11 @@
 #define READ 0
 #define WRITE 1
 
+void intHandler(int sign){
+	//TODO
+}
+
+
 int main(int argc, char *argv[]) {
 
 	int run_time;
@@ -94,11 +99,10 @@ void monitorWord(char *word, char *filename){
 	sleep(60); //just for testing
 }
 
-
 /*
  * Ending program.
  */
 void killAll(__pid_t pgids[], size_t size){
-
+//TODO
 }
 

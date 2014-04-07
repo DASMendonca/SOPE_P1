@@ -19,12 +19,14 @@
 #include <signal.h>
 
 
+void intHandler(int sign);
+
 void sigusr1Handler();
 
 void monitorAux(char *filename);
 
 void monitorWord(char *word, char *filename);
 
-void setPrGrID(pid_t group, pid_t proc);
+void killAll(__pid_t pgids[], size_t size);
 
 #endif /* PROJ1_H_ */
