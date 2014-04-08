@@ -18,11 +18,12 @@
 #include <string.h>
 #include <signal.h>
 #include <execinfo.h>
+#include <time.h>
 
 #define __USE_GNU
 #include <ucontext.h>
 
-#define DEBUG 1
+#define DEBUG 0
 #define READ 0
 #define WRITE 1
 
@@ -31,10 +32,12 @@ void intHandler(int sign);
 
 void sigusr1Handler();
 
-void monitorAux(char *filename);
+void monitorExistence(char *filename);
 
 void monitorWord(char *word, char *filename);
 
 void killAll(__pid_t pgids[], size_t size);
+
+void whoAmI(char *filename, char *whatIDo);
 
 #endif /* PROJ1_H_ */

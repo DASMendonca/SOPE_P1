@@ -22,16 +22,16 @@ int main(int argc, char *argv[]) {
 	int run_time;
 	__pid_t pid, pgr_id[(argc-3)];
 
-	struct sigaction action;
-	action.sa_handler = sig_handler;
-	sigemptyset(&action.sa_mask);
-	action.sa_flags = 0;
-
-	if (sigaction(SIGUSR1, &action, NULL) < 0)
-	{
-		fprintf(stderr,"Unable to install SIGNAL handler\n");
-		exit(1);
-	}
+	//	struct sigaction action;
+	//	action.sa_handler = sig_handler;
+	//	sigemptyset(&action.sa_mask);
+	//	action.sa_flags = 0;
+	//
+	//	if (sigaction(SIGUSR1, &action, NULL) < 0)
+	//	{
+	//		fprintf(stderr,"Unable to install SIGNAL handler\n");
+	//		exit(1);
+	//	}
 
 
 	if(argc<4){
@@ -66,7 +66,7 @@ int main(int argc, char *argv[]) {
 			//creating monitor_aux for the file and process
 			if((pid = fork())==0)
 			{
-				monitorAux(argv[i]);
+				monitorExistence(argv[i]);
 				return 0;
 			}
 			else
@@ -82,6 +82,7 @@ int main(int argc, char *argv[]) {
 
 	killAll(pgr_id, (argc -3));
 
+
 	return 0;
 }
 
@@ -89,15 +90,12 @@ int main(int argc, char *argv[]) {
 /*
  * check if files still exist every 5sec
  */
-void monitorAux(char *filename){
+void monitorExistence(char *filename){
 	//TODO
 	sleep(1);
 
 	if(DEBUG)
-	{
-		printf("I'm a monitor_aux, my pid is: %d and my pgid is: %d\n", (int) getpid(), (int) getpgrp()); //testing
-		printf("%d: I'm watching %s\n", (int) getpid(), filename); //testing
-	}
+		whoAmI(filename, "I'm checking the existence");
 
 	int fd;
 	while(1){
@@ -111,7 +109,7 @@ void monitorAux(char *filename){
 
 	printf("File %s does not exist and will not be tracked\n", filename);
 
-	kill((-1 * getpgrp()), SIGTERM);
+	kill((-1 * getpgrp()), SIGUSR1);
 }
 
 /**
@@ -126,6 +124,8 @@ void monitorWord(char *word, char *filename){
 
 	if((pid=fork())==0)
 	{
+		if(DEBUG)
+			whoAmI(filename, "tail");
 		close(pipe1[READ]);
 		dup2(pipe1[WRITE], STDOUT_FILENO);
 		execlp("tail", "tail", "-fn 1", filename, NULL);
@@ -137,6 +137,8 @@ void monitorWord(char *word, char *filename){
 
 		if((pid=fork())== 0)
 		{
+			if(DEBUG)
+				whoAmI(filename, "grep");
 			close(pipe1[WRITE]);
 			close(pipe2[READ]);
 			dup2(pipe1[READ], STDIN_FILENO);
@@ -145,12 +147,26 @@ void monitorWord(char *word, char *filename){
 		}
 		else
 		{
+			if(DEBUG)
+				whoAmI(filename, "communication");
 			setpgid(pid, getpid());
-		}
-		sleep(60); //TODO
-	}
+			close(pipe2[WRITE]);
 
-	sleep(60); //just for testing
+			time_t t = time(NULL);
+			struct tm tm = *localtime(&t);
+			char receive[255];
+			int read_bytes= 0;
+
+			while((read_bytes= read(pipe2[READ], receive, 255))!= -1 || read_bytes!= 0)
+			{
+				t= time(NULL);
+				tm = *localtime(&t);
+				receive[read_bytes]='\0';
+				printf("%4d-%02d-%02dT%02d:%02d:%02d - %s - %s", tm.tm_year + 1900, tm.tm_mon, tm.tm_mday,
+						tm.tm_hour, tm.tm_min, tm.tm_sec, filename, receive);
+			}
+		}
+	}
 }
 
 /*
@@ -165,3 +181,8 @@ void killAll(__pid_t pgids[], size_t size){
 			kill((-1*pgids[i]), SIGUSR1);
 	}
 }
+
+void whoAmI(char *filename, char *whatIDo){
+	printf("I'm %d, son of %d, of the groug %d. I do %s of %s\n",getpid(), getppid(), getpgrp(), whatIDo, filename);
+}
+
