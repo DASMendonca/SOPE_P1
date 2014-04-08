@@ -19,25 +19,32 @@
 #include <signal.h>
 #include <execinfo.h>
 #include <time.h>
+#include <sys/wait.h>
+
 
 #define __USE_GNU
 #include <ucontext.h>
 
-#define DEBUG 0
+#define DEBUG 1
 #define READ 0
 #define WRITE 1
+#define MAX_SIZE 2048
 
 
 void intHandler(int sign);
 
 void sigusr1Handler();
 
-void monitorExistence(char *filename);
+void monitorExistence(char *filenames[], __pid_t pgrid[], int files_nr);
 
 void monitorWord(char *word, char *filename);
 
-void killAll(__pid_t pgids[], size_t size);
+void killAll(__pid_t pgids[], size_t size, __pid_t file_checker);
+
+void waitForChildren(__pid_t pgids[], int status, size_t size);
 
 void whoAmI(char *filename, char *whatIDo);
+
+void sig_handler(int signo);
 
 #endif /* PROJ1_H_ */
