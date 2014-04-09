@@ -14,4 +14,4 @@ proj1.o: proj1.c
 	$(CC) $(CFLAGS) proj1.c
 
 clean:
-    rm -rf *.o
+	rm *.o
