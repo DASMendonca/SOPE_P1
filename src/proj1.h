@@ -35,13 +35,13 @@ void intHandler(int sign);
 
 void sigusr1Handler();
 
-void monitorExistence(char *filenames[], __pid_t pgrid[], int files_nr);
+void monitorExistence(char *filenames[], __pid_t *pgrid, int files_nr);
 
 void monitorWord(char *word, char *filename);
 
-void killAll(__pid_t pgids[], size_t size, __pid_t file_checker);
+void killAll(__pid_t *pgids, size_t size, __pid_t file_checker);
 
-void waitForChildren(__pid_t pgids[], int status, size_t size);
+void waitForChildren(__pid_t *pgids, int status, size_t size);
 
 void whoAmI(char *filename, char *whatIDo);
 

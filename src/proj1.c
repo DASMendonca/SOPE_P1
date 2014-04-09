@@ -16,13 +16,13 @@
 void sig_handler(int signo)
 {
 	if(DEBUG)
-		printf("handled a child\n");
+		printf("a child has died\n");
 }
 
 
 int main(int argc, char *argv[]) {
 
-	int run_time, status;
+	int run_time;//, status;
 	__pid_t pid, pgr_id[(argc-3)];
 
 	struct sigaction action;
@@ -64,7 +64,7 @@ int main(int argc, char *argv[]) {
 		}
 
 	}
-	waitForChildren(pgr_id, status, (argc-3));
+	//waitForChildren(pgr_id, status, (argc-3));
 
 	//creating monitor_aux for the file and process
 	if((pid = fork())==0)
@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
 		monitorExistence(argv, pgr_id, argc);
 		return 0;
 	}
-	waitpid(pid, &status, WNOHANG);
+	//waitpid(pid, &status, WNOHANG);
 
 	while(( run_time = sleep(run_time)) != 0);
 
@@ -85,7 +85,7 @@ int main(int argc, char *argv[]) {
 /*
  * check if files still exist every 5sec
  */
-void monitorExistence(char *argv[], __pid_t pgrid[], int argc){
+void monitorExistence(char *argv[], __pid_t *pgrid, int argc){
 	//TODO
 	sleep(1);
 
@@ -94,12 +94,15 @@ void monitorExistence(char *argv[], __pid_t pgrid[], int argc){
 
 	int fd;
 	int i;
+	int kill_return;
 	while(1){
 		sleep(5);
 		i=3;
 		for(; i<argc; i++)
 		{
 			int tmp = i-3;
+			if(DEBUG)
+				printf("This is existence monitor, pgrid[%d] = %d\n", tmp, pgrid[tmp]);
 			if(pgrid[tmp] != 0)
 			{
 
@@ -107,7 +110,8 @@ void monitorExistence(char *argv[], __pid_t pgrid[], int argc){
 				if(fd== -1)
 				{
 					printf("File %s does not exist and will not be tracked\n", argv[i]);
-					kill(-pgrid[tmp], SIGUSR1);
+					if((kill_return=kill(-pgrid[tmp], SIGUSR1))== -1)
+						printf("%s\n", strerror(errno));
 					pgrid[tmp]=0;
 				}
 				else{
@@ -171,7 +175,8 @@ void monitorWord(char *word, char *filename){
 				t= time(NULL);
 				tm = *localtime(&t);
 				receive[read_bytes]='\0';
-				printf("%4d-%02d-%02dT%02d:%02d:%02d - %s - %s", tm.tm_year + 1900, tm.tm_mon, tm.tm_mday,
+				//tm_mon january is 0 december is 11
+				printf("%4d-%02d-%02dT%02d:%02d:%02d - %s - %s", tm.tm_year + 1900, tm.tm_mon+1, tm.tm_mday,
 						tm.tm_hour, tm.tm_min, tm.tm_sec, filename, receive);
 			}
 		}
@@ -181,25 +186,33 @@ void monitorWord(char *word, char *filename){
 /*
  * Kills all processes
  */
-void killAll(__pid_t pgids[], size_t size, __pid_t file_checker){
+void killAll(__pid_t *pgids, size_t size, __pid_t file_checker){
 	//TODO
-	size_t i=0;
+	int i=0;
+	int kill_return;
+	if(DEBUG)
+		printf("This is killAll\n");
 	for(; i<size; i++)
 	{
+		if(DEBUG)
+			printf("pgid[%d]: %d\n", i, pgids[i]);
 		if(pgids[i]!= 0)
-			kill((-1*pgids[i]), SIGUSR1);
+			if((kill_return=kill((-1*pgids[i]), SIGUSR1)) == -1)
+				printf("error killing group %d: %s\n", pgids[i], strerror(errno));
+
 	}
-	kill(file_checker, SIGUSR1);
+	if((kill_return=kill(file_checker, SIGUSR1)) == -1)
+		printf("error killing %d: %s\n", file_checker, strerror(errno));
 }
 
-void waitForChildren(__pid_t pgids[], int status, size_t size){
+void waitForChildren(__pid_t *pgids, int status, size_t size){
 	int i =0;
 	for(; i<size; i++)
 		waitpid(pgids[i],  &status, WNOHANG);
 }
 
 /*
- * Debug purposes
+ * Debug purpose
  */
 void whoAmI(char *filename, char *whatIDo){
 	printf("I'm %d, son of %d, of the group %d. I do %s of %s\n",getpid(), getppid(), getpgrp(), whatIDo, filename);
