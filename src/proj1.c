@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
 	struct sigaction action;
 	action.sa_handler = sig_handler;
 	sigemptyset(&action.sa_mask);
-	action.sa_flags =  SA_NOCLDWAIT;
+	action.sa_flags = SA_NOCLDWAIT;
 
 	if (sigaction(SIGCHLD, &action, NULL) < 0)
 	{
@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
 	//printf("\n"); //testing
 
 	run_time = atoi(argv[1]);
-	//printf("run_time = %d\n", run_time);  //testing
+	//printf("run_time = %d\n", run_time); //testing
 
 	int i = 3;
 	for(; i<argc; i++){
@@ -208,7 +208,7 @@ void killAll(__pid_t *pgids, size_t size, __pid_t file_checker){
 void waitForChildren(__pid_t *pgids, int status, size_t size){
 	int i =0;
 	for(; i<size; i++)
-		waitpid(pgids[i],  &status, WNOHANG);
+		waitpid(pgids[i], &status, WNOHANG);
 }
 
 /*
@@ -216,4 +216,21 @@ void waitForChildren(__pid_t *pgids, int status, size_t size){
  */
 void whoAmI(char *filename, char *whatIDo){
 	printf("I'm %d, son of %d, of the group %d. I do %s of %s\n",getpid(), getppid(), getpgrp(), whatIDo, filename);
+}
+
+/*
+ * sets to 0 matching pid in the array of pids to be killed at the end of the program
+ */
+void doNotFollow(__pid_t pgrid, __pid_t *pgrids){
+	int i= 0;
+	printf("pgr to kill: %d, pgrids:%d\n", pgrid, pgrids[0]);
+	while(pgrids[i] != pgrid){
+		i++;
+	}
+	pgrids[i]=0;
+	if(DEBUG)
+		printf("i= %d: pgrid removed: %d\n", i, pgrids[i]);
+}
+
+void runningPeriod(int runtime, int *nr_procs, __pid_t *pgrids){
 }

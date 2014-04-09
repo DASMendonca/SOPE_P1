@@ -25,10 +25,11 @@
 #define __USE_GNU
 #include <ucontext.h>
 
-#define DEBUG 0
+#define DEBUG 1
 #define READ 0
 #define WRITE 1
 #define MAX_SIZE 2048
+
 
 
 void intHandler(int sign);
@@ -46,5 +47,9 @@ void waitForChildren(__pid_t *pgids, int status, size_t size);
 void whoAmI(char *filename, char *whatIDo);
 
 void sig_handler(int signo);
+
+void doNotFollow(__pid_t pgrid, __pid_t *pgrids);
+
+void runningPeriod(int runtime, int *nr_procs, __pid_t *pgrids);
 
 #endif /* PROJ1_H_ */
