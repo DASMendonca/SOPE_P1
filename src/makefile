@@ -9,9 +9,7 @@ all: monitor
 
 monitor: proj1.o
 	$(CC) proj1.o -o monitor
-
 proj1.o: proj1.c
 	$(CC) $(CFLAGS) proj1.c
-
 clean:
 	rm *.o
