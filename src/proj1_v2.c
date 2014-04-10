@@ -103,39 +103,28 @@ int main(int argc, char *argv[]) {
  * filenames given from argv[3] to argv[argc-1]
  * if the file does not exist anymore, the process group monitoring its words is killed
  */
-void monitorExistence(char *argv[], __pid_t *pgrid, int argc){
+void monitorExistence(char *argv[], __pid_t *pgrids, int argc){
 	sleep(TIME_BEFORE_LAUNCH);
 
 	if(DEBUG)
 		printf("I am the existence monitor. My pid: %d. My ppid: %d\n", getpid(), getppid());
 
-	int fd;
-	int i;
-	int kill_return;
 	while(1){
 		sleep(5);
-		i=3;
+		int i=3;
 		for(; i<argc; i++)	//trying to open the files
 		{
 			int tmp = i-3;	//tmp is the matching pid index at pgrid
-			if(pgrid[tmp] != 0)
+			if(pgrids[tmp] != 0)
 			{
+				if(DEBUG)
+					printf("Verifying existence of %s, that belongs with %d group\n", argv[i], pgrids[tmp]);
 
-				fd = open(argv[i], O_RDONLY);
-				if(fd== -1)
-				{
-					printf("File %s does not exist and will not be tracked\n", argv[i]);
-					if((kill_return=kill(-pgrid[tmp], SIGUSR1))== -1)
-						printf("%s\n", strerror(errno));
-					pgrid[tmp]=0;
-				}
-				else{
-					close(fd);
-					if(DEBUG)
-						printf("Verified existence of %s, that belongs with %d group\n", argv[i], pgrid[tmp]);
+				if(checkFileExistence(argv[i]) == -1){
+					killOneProcessGroup(pgrids[tmp]);
+					pgrids[tmp]=0;
 				}
 			}
-
 		}
 	}
 }
@@ -251,6 +240,14 @@ void doNotFollow(__pid_t pgrid, __pid_t *pgrids){
 int checkFileExistence(char *filename){
 	int fd;
 
+	fd = open(filename, O_RDONLY);
+	if(fd== -1)
+	{
+		printf("%s: %s\n", filename, strerror(errno));
+		return -1;
+	}
+	close(fd);
+
 
 	return 0;
 }
@@ -258,6 +255,8 @@ int checkFileExistence(char *filename){
 
 //kill a process group
 void killOneProcessGroup(__pid_t pgid){
-	//TODO
+	if(kill(-pgid, SIGUSR1)== -1){
+		printf("%s\n", strerror(errno));
+	}
 }
 
