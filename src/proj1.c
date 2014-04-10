@@ -10,6 +10,7 @@
 
 #include "proj1.h"
 
+
 /*
  * handle terminated children
  */
@@ -22,8 +23,9 @@ void sig_handler(int signo)
 
 int main(int argc, char *argv[]) {
 
-	int run_time;//, status;
-	__pid_t pid, pgr_id[(argc-3)];
+
+	int run_time, alive_procs=(argc-3);//, status;
+	__pid_t pid, pgr_id[alive_procs];
 
 	struct sigaction action;
 	action.sa_handler = sig_handler;
@@ -64,7 +66,10 @@ int main(int argc, char *argv[]) {
 		}
 
 	}
-	//waitForChildren(pgr_id, status, (argc-3));
+
+
+	//waitpid(-1, &status, WNOHANG);
+	//runningPeriod();
 
 	//creating monitor_aux for the file and process
 	if((pid = fork())==0)
@@ -72,11 +77,10 @@ int main(int argc, char *argv[]) {
 		monitorExistence(argv, pgr_id, argc);
 		return 0;
 	}
-	//waitpid(pid, &status, WNOHANG);
 
 	while(( run_time = sleep(run_time)) != 0);
 
-	killAll(pgr_id, (argc -3), pid);
+	killAll(pgr_id, &alive_procs, pid);
 
 
 	return 0;
@@ -186,13 +190,13 @@ void monitorWord(char *word, char *filename){
 /*
  * Kills all processes
  */
-void killAll(__pid_t *pgids, size_t size, __pid_t file_checker){
+void killAll(__pid_t *pgids, int *alive_procs, __pid_t file_checker){
 	//TODO
 	int i=0;
 	int kill_return;
 	if(DEBUG)
 		printf("This is killAll\n");
-	for(; i<size; i++)
+	for(; i< (*alive_procs); i++)
 	{
 		if(DEBUG)
 			printf("pgid[%d]: %d\n", i, pgids[i]);
@@ -205,11 +209,6 @@ void killAll(__pid_t *pgids, size_t size, __pid_t file_checker){
 		printf("error killing %d: %s\n", file_checker, strerror(errno));
 }
 
-void waitForChildren(__pid_t *pgids, int status, size_t size){
-	int i =0;
-	for(; i<size; i++)
-		waitpid(pgids[i], &status, WNOHANG);
-}
 
 /*
  * Debug purpose
@@ -232,5 +231,6 @@ void doNotFollow(__pid_t pgrid, __pid_t *pgrids){
 		printf("i= %d: pgrid removed: %d\n", i, pgrids[i]);
 }
 
-void runningPeriod(int runtime, int *nr_procs, __pid_t *pgrids){
+void runningPeriod(int *runtime, int alive_procs, __pid_t *pgrids){
+
 }

@@ -40,7 +40,7 @@ void monitorExistence(char *filenames[], __pid_t *pgrid, int files_nr);
 
 void monitorWord(char *word, char *filename);
 
-void killAll(__pid_t *pgids, size_t size, __pid_t file_checker);
+void killAll(__pid_t *pgids, int *size, __pid_t file_checker);
 
 void waitForChildren(__pid_t *pgids, int status, size_t size);
 
@@ -50,6 +50,6 @@ void sig_handler(int signo);
 
 void doNotFollow(__pid_t pgrid, __pid_t *pgrids);
 
-void runningPeriod(int runtime, int *nr_procs, __pid_t *pgrids);
+void runningPeriod(int *runtime, int alive_procs, __pid_t *pgrids);
 
 #endif /* PROJ1_H_ */
