@@ -1,15 +1,17 @@
 /*
- ============================================================================
- Name        : proj1.c
- Author      : Daniel Mendonça
- Version     :
- Copyright   : Your copyright notice
- Description : Project 1, SOPE
- ============================================================================
+============================================================================
+Name : proj1.c
+Author : Daniel Mendonça
+Version :
+Copyright : Your copyright notice
+Description : Project 1, SOPE
+============================================================================
  */
 
 #include "proj1.h"
 
+
+int buried_children=0;
 
 /*
  * handle terminated children
@@ -17,15 +19,16 @@
 void sig_handler(int signo)
 {
 	if(DEBUG)
-		printf("a child has died\n");
+		printf("I, %d, buried a child has died\n", getpid());
+	buried_children++;
 }
 
 
 int main(int argc, char *argv[]) {
 
 
-	int run_time, alive_procs=(argc-3);//, status;
-	__pid_t pid, pgr_id[alive_procs];
+	int runtime, alive_procs=(argc-3);
+	__pid_t pid, pgids[alive_procs];
 
 	struct sigaction action;
 	action.sa_handler = sig_handler;
@@ -38,90 +41,60 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	}
 
+	validator(argc, argv, &runtime);
 
-	if(argc<4){
-		puts("Invalid input.\nInput example: ./monitor time word filename1 filename2 ... filenameN\n");
-		return -1;
-	}
-	//printf("\n"); //testing
-
-	run_time = atoi(argv[1]);
-	//printf("run_time = %d\n", run_time); //testing
-
-	int i = 3;
-	for(; i<argc; i++){
-		int tmp = i -3;
-
-		if((pid= fork()) == 0)
-		{
-			//word control
-			monitorWord(argv[2], argv[i]);
-			return 0;
-		}
-		else
-		{
-			pgr_id[tmp]= pid;
-			setpgid(pid, pid); //child pgrid is the sames as his pid
-			//waitpid(-pid, &status, WNOHANG);
-		}
-
-	}
-
-
-	//waitpid(-1, &status, WNOHANG);
-	//runningPeriod();
+	monitorWordCreator(argv, argc, pgids, &pid);
 
 	//creating monitor_aux for the file and process
-	if((pid = fork())==0)
+	iFork(&pid);
+	if(pid==-1){
+		perror("Error. Could not monitor files\n");
+		killAll(pgids, &alive_procs, pid);
+		exit(-1);
+	}
+	if(pid==0)
 	{
-		monitorExistence(argv, pgr_id, argc);
+		monitorExistence(argv, pgids, argc);
 		return 0;
 	}
 
-	while(( run_time = sleep(run_time)) != 0);
+	if(DEBUG)
+		printf("alive_procs: %d\n", alive_procs);
 
-	killAll(pgr_id, &alive_procs, pid);
+	while(( runtime = sleep(runtime)) != 0 && alive_procs>buried_children){
+		if(DEBUG)
+				printf("alive_procs: %d buried_children:%d\n", alive_procs, buried_children);
+	}
 
+	alive_procs = argc -3;
+	killAll(pgids, &alive_procs, pid);
 
 	return 0;
 }
 
+
 /*
  * check if files still exist every 5sec
  */
-void monitorExistence(char *argv[], __pid_t *pgrid, int argc){
-	//TODO
-	sleep(1);
+void monitorExistence(char *argv[], __pid_t *pgids, int argc){
 
 	if(DEBUG)
 		printf("I am the existence monitor. My pid: %d. My ppid: %d\n", getpid(), getppid());
 
-	int fd;
-	int i;
-	int kill_return;
 	while(1){
+		int i=3;
 		sleep(5);
-		i=3;
 		for(; i<argc; i++)
 		{
 			int tmp = i-3;
 			if(DEBUG)
-				printf("This is existence monitor, pgrid[%d] = %d\n", tmp, pgrid[tmp]);
-			if(pgrid[tmp] != 0)
+				printf("This is existence monitor, pgrid[%d] = %d\n", tmp, pgids[tmp]);
+			if(pgids[tmp] != 0)
 			{
-
-				fd = open(argv[i], O_RDONLY);
-				if(fd== -1)
-				{
-					printf("File %s does not exist and will not be tracked\n", argv[i]);
-					if((kill_return=kill(-pgrid[tmp], SIGUSR1))== -1)
-						printf("%s\n", strerror(errno));
-					pgrid[tmp]=0;
-				}
-				else{
-					close(fd);
-					if(DEBUG)
-						printf("Verified existence of %s, that belongs with %d group\n", argv[i], pgrid[tmp]);
+				int return_val= checkFileExistence(argv[i]);
+				if(return_val==-1){
+					killOneProcessGroup(pgids[tmp]);
+					pgids[tmp]=0;
 				}
 			}
 
@@ -129,12 +102,12 @@ void monitorExistence(char *argv[], __pid_t *pgrid, int argc){
 	}
 }
 
+
 /**
  * using with dup2, pipes and exec
  *
  */
 void monitorWord(char *word, char *filename){
-	//TODO
 	int pipe1[2], pipe2[2];
 	pipe(pipe1);
 	__pid_t pid;
@@ -187,26 +160,33 @@ void monitorWord(char *word, char *filename){
 	}
 }
 
+
 /*
  * Kills all processes
  */
-void killAll(__pid_t *pgids, int *alive_procs, __pid_t file_checker){
-	//TODO
+void killAll(__pid_t *pgids, int *nr_created_procs, __pid_t file_checker){
 	int i=0;
 	int kill_return;
 	if(DEBUG)
 		printf("This is killAll\n");
-	for(; i< (*alive_procs); i++)
+
+	for(; i< (*nr_created_procs); i++)
 	{
 		if(DEBUG)
 			printf("pgid[%d]: %d\n", i, pgids[i]);
-		if(pgids[i]!= 0)
-			if((kill_return=kill((-1*pgids[i]), SIGUSR1)) == -1)
-				printf("error killing group %d: %s\n", pgids[i], strerror(errno));
 
+		if(pgids[i]!= 0)
+			kill_return=kill((-1*pgids[i]), SIGUSR1);
+		if(DEBUG){
+			if(kill_return==-1)
+			printf("error killing group %d: %s\n", pgids[i], strerror(errno));
+		}
 	}
-	if((kill_return=kill(file_checker, SIGUSR1)) == -1)
-		printf("error killing %d: %s\n", file_checker, strerror(errno));
+	kill_return=kill(file_checker, SIGUSR1);
+	if(DEBUG){
+		if(kill_return==-1)
+		printf("error killing fileChecker %d: %s\n", file_checker, strerror(errno));
+	}
 }
 
 
@@ -216,6 +196,7 @@ void killAll(__pid_t *pgids, int *alive_procs, __pid_t file_checker){
 void whoAmI(char *filename, char *whatIDo){
 	printf("I'm %d, son of %d, of the group %d. I do %s of %s\n",getpid(), getppid(), getpgrp(), whatIDo, filename);
 }
+
 
 /*
  * sets to 0 matching pid in the array of pids to be killed at the end of the program
@@ -231,6 +212,78 @@ void doNotFollow(__pid_t pgrid, __pid_t *pgrids){
 		printf("i= %d: pgrid removed: %d\n", i, pgrids[i]);
 }
 
-void runningPeriod(int *runtime, int alive_procs, __pid_t *pgrids){
 
+/*
+ * creates all monitor_aux, the process that looks for the word in the file
+ */
+void monitorWordCreator(char *argv[], int argc, __pid_t *pgids, __pid_t *pid){
+	int i = 3;
+
+	for(; i<argc; i++){
+		int tmp = i -3;
+
+		iFork(pid);
+		if((*pid)==0)
+		{
+			//word control
+			monitorWord(argv[WORD_INDEX], argv[i]);
+		}
+		else if((*pid)==-1){
+			pgids[tmp]=0;
+		}
+		else
+		{
+			pgids[tmp]= (*pid);
+			setpgid((*pid), pgids[tmp]); //child pgrid is the sames as his pid
+		}
+
+	}
 }
+
+
+//checks if user gave a good input
+void validator(int argc, char* argv[], int *runtime){
+	//TODO
+	if(argc<4){
+		puts("Invalid number of args.\nInput example: ./monitor time_to_live word filename1 filename2 ... filenameN\n");
+		exit(-1);
+	}
+
+	(*runtime) = atoi(argv[1]);
+	if((*runtime)<=0){
+		puts("The time_to_live you set is invalid. Must be >0\n");
+		exit(-1);
+	}
+}
+
+
+/*
+ * Try to open with readonly permission the filename. Return -1 if it fails.
+ */
+int checkFileExistence(char *filename){
+	int fd;
+
+	fd = open(filename, O_RDONLY);
+	if(fd== -1)
+	{
+		printf("%s: %s\n", filename, strerror(errno));
+		return -1;
+	}
+	close(fd);
+	return 0;
+}
+
+
+//kill a process group
+void killOneProcessGroup(__pid_t pgid){
+	if(kill(-pgid, SIGUSR1)== -1){
+		printf("%s\n", strerror(errno));
+	}
+}
+
+void iFork(__pid_t *pid){
+	(*pid)=fork();
+	if((*pid) < 1)
+		printf("%s\n", strerror(errno));
+}
+

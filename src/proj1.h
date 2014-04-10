@@ -1,9 +1,9 @@
 /*
- * proj1.h
- *
- *  Created on: Apr 5, 2014
- *      Author: daniel
- */
+* proj1.h
+*
+* Created on: Apr 5, 2014
+* Author: daniel
+*/
 
 #ifndef PROJ1_H_
 #define PROJ1_H_
@@ -29,6 +29,7 @@
 #define READ 0
 #define WRITE 1
 #define MAX_SIZE 2048
+#define WORD_INDEX 2
 
 
 
@@ -50,6 +51,14 @@ void sig_handler(int signo);
 
 void doNotFollow(__pid_t pgrid, __pid_t *pgrids);
 
-void runningPeriod(int *runtime, int alive_procs, __pid_t *pgrids);
+void validator(int argc, char* argv[], int *runtime);
+
+void monitorWordCreator(char *argv[], int argc, __pid_t *pgids, __pid_t *pid);
+
+void killOneProcessGroup(__pid_t pgid);
+
+int checkFileExistence(char *filename);
+
+void iFork(__pid_t *pid);
 
 #endif /* PROJ1_H_ */
