@@ -142,6 +142,7 @@ void monitorWord(char *word, char *filename){
 
 	if((pid=fork())==0)
 	{
+		//tail
 		if(DEBUG)
 			whoAmI(filename, "tail");
 		close(pipe1[READ]);
@@ -155,6 +156,7 @@ void monitorWord(char *word, char *filename){
 
 		if((pid=fork())== 0)
 		{
+			//grep
 			if(DEBUG)
 				whoAmI(filename, "grep");
 			close(pipe1[WRITE]);
@@ -165,8 +167,9 @@ void monitorWord(char *word, char *filename){
 		}
 		else
 		{
+			//console output
 			if(DEBUG)
-				whoAmI(filename, "communication");
+				whoAmI(filename, "grep output to console");
 			setpgid(pid, getpid());
 			close(pipe2[WRITE]);
 

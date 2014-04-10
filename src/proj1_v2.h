@@ -17,7 +17,6 @@
 #include <errno.h>
 #include <string.h>
 #include <signal.h>
-#include <execinfo.h>
 #include <time.h>
 #include <sys/wait.h>
 
@@ -30,7 +29,6 @@
 #define WRITE 1
 #define MAX_SIZE 2048
 #define TIME_BEFORE_LAUNCH 2
-
 
 
 void intHandler(int sign);
