@@ -283,7 +283,7 @@ void killOneProcessGroup(__pid_t pgid){
 
 void iFork(__pid_t *pid){
 	(*pid)=fork();
-	if((*pid) < 1)
+	if((*pid) < 0)
 		printf("%s\n", strerror(errno));
 }
 

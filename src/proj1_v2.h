@@ -28,7 +28,7 @@
 #define READ 0
 #define WRITE 1
 #define MAX_SIZE 2048
-#define TIME_BEFORE_LAUNCH 2
+#define TIME_BEFORE_LAUNCH 3
 
 
 void intHandler(int sign);
@@ -47,7 +47,7 @@ void whoAmI(char *filename, char *whatIDo);
 
 void sig_handler(int signo);
 
-void doNotFollow(__pid_t pgrid, __pid_t *pgrids);
+void doNotFollow(__pid_t pgrid, __pid_t *pgrids, int size);
 
 int checkFileExistence(char *filename);
 

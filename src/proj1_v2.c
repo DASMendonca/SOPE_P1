@@ -1,33 +1,28 @@
 /*
- ============================================================================
- Name        : proj1.c
- Author      : Daniel Mendonça
- Version     :
- Copyright   : Your copyright notice
- Description : Project 1, SOPE
- ============================================================================
+============================================================================
+Name : proj1.c
+Author : Daniel Mendonça
+Version :
+Copyright : Your copyright notice
+Description : Project 1, SOPE
+============================================================================
  */
 
 #include "proj1.h"
 
 __pid_t *pgrids;
+int sizeof_pgrids;
 
 /*
  * handle terminated children and classifies the process group as dead, so the parent don't try to kill it again
  */
 void sig_handler(int signo)
 {
-	int stat;
-	__pid_t pid;	//v2
-	pid = waitpid(-1, &stat, WNOHANG);
 
 	if(DEBUG)
 	{
 		printf("sig_handler of pid:%d\n", getpid());
-		printf("process killed: %d\n", pid);
 	}
-
-	doNotFollow(pid, pgrids);
 }
 
 
@@ -35,7 +30,8 @@ void sig_handler(int signo)
 int main(int argc, char *argv[]) {
 
 
-	int runtime, alive_procs=(argc-3);
+	int runtime, alive_procs=(argc-3), status;
+	sizeof_pgrids=alive_procs;
 	__pid_t pid;
 
 	struct sigaction action;
@@ -48,6 +44,15 @@ int main(int argc, char *argv[]) {
 	{
 		fprintf(stderr,"Unable to install SIGNAL handler\n");
 		exit(1);
+	}
+	status = 3;
+	for(; status<argc; status++){
+		int fd= open(argv[status], O_RDONLY);
+		if(fd==-1){
+			fprintf(stderr, "One or more files given not found\n");
+			exit(1);
+		}
+		close(fd);
 	}
 	pgrids=malloc(sizeof(__pid_t) * alive_procs);
 
@@ -86,14 +91,23 @@ int main(int argc, char *argv[]) {
 		monitorExistence(argv, pgrids, argc);
 		return 0;
 	}
-
-	while(( runtime = sleep(runtime)) != 0)
+	if(DEBUG)
+		printf("alive processes:%d\n", alive_procs);
+	while(alive_procs>0)
 	{	//v2
-		alive_procs--;
-		if(alive_procs<=0)
+		__pid_t pid_tmp= waitpid(-1, &status, WNOHANG);
+
+		runtime=sleep(runtime);
+		if(runtime==0)
 			break;
+
+		if(pid_tmp>0){
+			printf("pid_tmp:%d\n", pid_tmp);
+			alive_procs--;
+			doNotFollow(pid_tmp, pgrids, sizeof_pgrids);
+		}
 	}
-	killAll(pgrids, &alive_procs, pid); //v2
+	killAll(pgrids, &sizeof_pgrids, pid); //v2
 	return 0;
 }
 
@@ -104,7 +118,6 @@ int main(int argc, char *argv[]) {
  * if the file does not exist anymore, the process group monitoring its words is killed
  */
 void monitorExistence(char *argv[], __pid_t *pgrids, int argc){
-	sleep(TIME_BEFORE_LAUNCH);
 
 	if(DEBUG)
 		printf("I am the existence monitor. My pid: %d. My ppid: %d\n", getpid(), getppid());
@@ -131,11 +144,11 @@ void monitorExistence(char *argv[], __pid_t *pgrids, int argc){
 
 
 /**
- * Creates 2 children, one running tail and  one grep, connecting them with a pipe, and connects itself
+ * Creates 2 children, one running tail and one grep, connecting them with a pipe, and connects itself
  * with grep, so it can catch every phrase with the word you want to find in the file filename.
  */
 void monitorWord(char *word, char *filename){
-	sleep(TIME_BEFORE_LAUNCH);
+	//sleep(TIME_BEFORE_LAUNCH);
 	int pipe1[2], pipe2[2];
 	pipe(pipe1);
 	__pid_t pid;
@@ -225,15 +238,17 @@ void whoAmI(char *filename, char *whatIDo){
 /*
  * sets to 0 matching pid in the array of pids, so we can avoid trying to kill an inexistent process
  */
-void doNotFollow(__pid_t pgrid, __pid_t *pgrids){
+void doNotFollow(__pid_t pgrid, __pid_t *pgrids, int size){
 	int i= 0;
 	//printf("pgr to kill: %d, pgrids:%d\n", pgrid, pgrids[0]);
-	while(pgrids[i] != pgrid){
+	while(pgrids[i] != pgrid && i< sizeof_pgrids){
 		i++;
 	}
-	pgrids[i]=0;
-	if(DEBUG)
-		printf("i= %d: pgrid removed: %d\n", i, pgrids[i]);
+	if(i<sizeof_pgrids){
+		pgrids[i]=0;
+		if(DEBUG)
+			printf("i= %d: pgrid removed: %d\n", i, pgrids[i]);
+	}
 }
 
 
@@ -247,11 +262,10 @@ int checkFileExistence(char *filename){
 	if(fd== -1)
 	{
 		printf("%s: %s\n", filename, strerror(errno));
+		usleep(50);
 		return -1;
 	}
 	close(fd);
-
-
 	return 0;
 }
 
@@ -262,4 +276,3 @@ void killOneProcessGroup(__pid_t pgid){
 		printf("%s\n", strerror(errno));
 	}
 }
-

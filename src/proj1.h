@@ -25,7 +25,7 @@
 #define __USE_GNU
 #include <ucontext.h>
 
-#define DEBUG 1
+#define DEBUG 0
 #define READ 0
 #define WRITE 1
 #define MAX_SIZE 2048
